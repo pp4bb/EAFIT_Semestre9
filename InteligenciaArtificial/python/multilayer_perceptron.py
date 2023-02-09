@@ -133,5 +133,4 @@ class MultilayerPerceptron:
 
             deltas.append(delta)
 
-        print(weights)
-        return weights, meanloss, deltas
+        return weights, meanlosses, deltas

@@ -17,20 +17,17 @@ def main():
     MLP = MultilayerPerceptron(phiF="linear")
     weights, losses, deltas = MLP.fit(all_inputs, all_outputs)
     print("Weights: ", weights)
-    print("Mean Losses: ", losses)
     for ipt in all_inputs:
         print(f"Input: {ipt}")
         y = MLP.forward(ipt, weights)
         print(f"Output {y}")
 
-    print(losses)
     # Plot
-    """
-    plt.plot(losses)
+
+    plt.plot(deltas)
     plt.xlabel("epochs")
     plt.ylabel("deltas")
     plt.show()
-    """
 
 
 if __name__ == "__main__":
