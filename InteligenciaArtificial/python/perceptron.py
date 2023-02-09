@@ -141,7 +141,51 @@ class Perceptron:
         float
             Output of the perceptron.
         """
-        self.data = data
+
+        self.data, self.weights = data, weights
         self.localfield = np.dot(weights, self.data)
         self.output = self.phi(self.localfield)
         return self.output
+
+    def fit(
+        self,
+        all_inputs: list,
+        all_outputs: list,
+        epochs: int = 10000,
+        lr: float = 0.01,
+    ) -> None:
+        """Fits the model to the data and the targets, performs gradient descend
+
+        Parameters
+        ----------
+        all_inputs: list
+            The input data
+        """
+
+        weights = np.random.rand(2)
+        meanlosses = []
+        for _ in range(epochs):
+            losses = []
+            gradients = []
+            for data, target in zip(all_inputs, all_outputs):
+                y = self.forward(data, weights)
+                loss = self.loss(target, y)
+                gradient = self.gradient(target, y)
+                # Store loss and gradient
+                losses.append(loss)
+                gradients.append(gradient)
+
+            # Calculate means by epoch
+            meanloss = sum(losses) / len(losses)
+            meanlosses.append(meanloss)
+            meangrad = np.array(
+                [
+                    sum([gradient[i] for gradient in gradients]) / len(gradients)
+                    for i in range(len(gradients[0]))
+                ]
+            )
+
+            delta = lr * -meangrad
+            weights += delta
+
+        return weights, meanlosses
