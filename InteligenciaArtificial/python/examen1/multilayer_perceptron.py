@@ -137,6 +137,6 @@ class MultilayerPerceptron:
             delta = lr * -meangrad
             weights[-1] += delta
 
-            deltas.append(-meangrad)
+            deltas.append(delta)
 
         return weights, meanlosses, deltas

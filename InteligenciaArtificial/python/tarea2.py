@@ -4,7 +4,7 @@ AND, OR, and XOR logic gates.
 from multilayer_perceptron import MultilayerPerceptron
 import matplotlib
 
-matplotlib.use("TKAgg")
+#matplotlib.use("TKAgg")
 import matplotlib.pyplot as plt
 
 
