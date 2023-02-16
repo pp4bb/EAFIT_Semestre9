@@ -1,10 +1,10 @@
 """Use a fully conected multilayer perceptron in its most basic way to classify the
 AND, OR, and XOR logic gates.
 """
-from multilayer_perceptron import MultilayerPerceptron
+from NNpy.multilayer_perceptron import MultilayerPerceptron
 import matplotlib
 
-#matplotlib.use("TKAgg")
+# matplotlib.use("TKAgg")
 import matplotlib.pyplot as plt
 
 

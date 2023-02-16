@@ -1,5 +1,5 @@
 """Use a perceptron to classify the AND, OR and XOR logic gates"""
-from perceptron import Perceptron
+from NNpy.perceptron import Perceptron
 
 
 def main():
