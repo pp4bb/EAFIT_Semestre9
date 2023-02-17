@@ -6,6 +6,7 @@ in the layers and the neural networks.
 # libraries
 import numpy as np
 
+########################################################################################
 """ Loss functions
 
 List of loss functions and their derivatives:
@@ -88,6 +89,7 @@ def dmse(y: np.ndarray, y_hat: np.ndarray) -> np.ndarray:
     return 2 * (y_hat - y) / y.size
 
 
+########################################################################################
 """Activation functions
 
 List of activation functions and their derivatives:
@@ -95,10 +97,12 @@ List of activation functions and their derivatives:
     - dlinear
     - sigmoid
     - dsigmoid
+    - relu
+    - drelu
 """
 
 
-def linear(x: np.ndarray, m: float, b: float) -> np.ndarray:
+def linear(x: np.ndarray, m: float, b: float, *args) -> np.ndarray:
     """Linear activation function.
 
     Parameters
@@ -113,7 +117,7 @@ def linear(x: np.ndarray, m: float, b: float) -> np.ndarray:
     return m * x + b
 
 
-def dlinear(x: np.ndarray, m: float, b: float) -> np.ndarray:
+def dlinear(x: np.ndarray, m: float, *args) -> np.ndarray:
     """Derivative of the linear activation function.
 
     Parameters
@@ -122,13 +126,11 @@ def dlinear(x: np.ndarray, m: float, b: float) -> np.ndarray:
         Input data.
     m: np.ndarray
         Slope array.
-    b: np.ndarray
-        Intercept array.
     """
     return m
 
 
-def sigmoid(x: np.ndarray) -> np.ndarray:
+def sigmoid(x: np.ndarray, *args) -> np.ndarray:
     """Sigmoid activation function.
 
     Parameters
@@ -139,7 +141,7 @@ def sigmoid(x: np.ndarray) -> np.ndarray:
     return 1 / (1 + np.exp(-x))
 
 
-def dsigmoid(x: np.ndarray) -> np.ndarray:
+def dsigmoid(x: np.ndarray, *args) -> np.ndarray:
     """Derivative of the sigmoid activation function.
 
     Parameters
@@ -148,3 +150,25 @@ def dsigmoid(x: np.ndarray) -> np.ndarray:
         Input data.
     """
     return sigmoid(x) * (1 - sigmoid(x))
+
+
+def relu(x: np.ndarray, *args) -> np.ndarray:
+    """Rectified Linear Unit activation function.
+
+    Parameters
+    ----------
+    x: np.ndarray
+        Input data.
+    """
+    return np.maximum(0, x)
+
+
+def drelu(x: np.ndarray, *args) -> np.ndarray:
+    """Derivative of the Rectified Linear Unit activation function.
+
+    Parameters
+    ----------
+    x: np.ndarray
+        Input data.
+    """
+    return np.where(x > 0, 1, 0)
