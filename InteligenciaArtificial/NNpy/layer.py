@@ -49,7 +49,7 @@ class Layer:
         """
         self.in_features = in_features
         self.out_features = out_features
-        self.weights = np.random.rand(out_features, in_features)
+        self.weights = np.random.rand(in_features, out_features)
         if bias:
             self.bias = np.random.rand(out_features)
         else:
@@ -77,15 +77,16 @@ class Layer:
             Output data.
         """
         self.data = x
-        return self.phi(np.dot(self.weights, x) + self.bias, *self.args)
+        localfield = self.weights.T @ self.data + self.bias
+        return self.phi(localfield, *self.args)
 
-    def backward(self, grad: float, loss=None) -> np.ndarray:
+    def backward(self, grad: float, dloss=None) -> np.ndarray:
         """Backward pass of the layer.
         Parameters
         ----------
         grad: np.ndarray
             Gradient of the next layer.
-        loss: np.ndarray
+        dloss: np.ndarray
             Loss of the layer. It must be provided only if the layer is the
             output layer.
 
@@ -94,12 +95,12 @@ class Layer:
         np.ndarray
             Gradient of the weights.
         """
-        localfield = np.dot(self.weights, self.data) + self.bias
+        localfield = self.data
         if self.last:
-            self.gradient = self.dphi(localfield, *self.args) * loss
+            self.gradient = self.dphi(localfield, *self.args) * dloss
         else:
-            self.gradient = self.dphi(localfield, *self.args) * np.dot(
-                self.weights, grad.T
+            self.gradient = self.dphi(localfield, *self.args) * np.sum(
+                self.weights * grad, axis=1
             )
         return self.gradient
 
@@ -110,5 +111,10 @@ class Layer:
         lr: float
             Learning rate.
         """
-        self.weights = lr * self.gradient * self.data
+        print(self.weights.shape)
+        print(self.gradient.shape)
+        print(self.data)
+        delta = self.gradient * self.data
+        print(self.weights, lr, delta)
+        self.weights += lr * delta
         # sprint(self.weights)

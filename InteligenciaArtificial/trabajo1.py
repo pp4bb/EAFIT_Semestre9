@@ -1,56 +1,88 @@
-import NNpy.nn as nn
-import NNpy.functional as F
-from tqdm import tqdm
-import numpy as np
 import matplotlib.pyplot as plt
+from nn_design import NeuralNetwork
+import numpy as np
+from tqdm import tqdm
 
 
-class design1:
-    def __init__(self):
-        self.fcn = nn.Sequential(
-            nn.Linear(2, 2, args=(1, 0)),
-            nn.Linear(2, 1, args=(1, 0)),
-            nn.Linear(1, 1, last=True, args=(1, 0)),
-        )
-
-    def forward(self, x):
-        return self.fcn.forward(x)
-
-    def fit(self, x, y, epochs, lr):
-        meanlosses = []
-        meangradients = []
-        for epoch in tqdm(range(epochs), desc="Epochs"):
-            losses = []
-            grads = []
-            for i in range(len(x)):
-                y_hat = self.fcn.forward(x[i])
-                loss = F.insta_energy(y[i], y_hat)
-                losses.append(loss)
-                self.fcn.backward(loss=loss)
-                grad = self.fcn.layers[-1].gradient
-                grads.append(grad)
-                self.fcn.step(lr)
-            meanloss = sum(losses) / len(losses)
-            meanlosses.append(meanloss)
-            meangrad = sum(grads) / len(grads)
-            meangradients.append(meangrad)
-
-        return meanlosses, meangradients
+def load_data() -> tuple:
+    """Load the data."""
+    data = np.loadtxt("data/DATOS.txt", comments="#", delimiter=",", unpack=False)
+    all_inputs, all_outputs = [], []
+    # Store the desired data.
+    for i in range(300):
+        all_inputs.append(np.array([data[i, 0], data[i, 1]]))
+        all_outputs.append(data[i, 2])
+    return all_inputs, all_outputs
 
 
-def main():
-    all_inputs = np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])
-    all_outputs = np.array([0.0, 1.0, 1.0, 1.0])
-    # all_outputs = [0.0, 0.0, 0.0, 1.0]
-    # all_outputs = [0.0, 1.0, 1.0, 0.0]
-    MLP = design1()
-    losses, gradients = MLP.fit(all_inputs, all_outputs, 10, 0.01)
-    for ipt in all_inputs:
-        print(f"Input: {ipt}")
-        y = MLP.forward(ipt)
-        print(f"Output {y}")
+def plot_results(experiments_L, experiments_G) -> None:
+    """Plot the results."""
+    # Initialize the lists.
+    hidden_layers = [1, 2, 3]
+    hidden_neurons = [1, 2, 3, 4, 5]
+    learning_rates = [0.2, 0.5, 0.9]
+    # Iterate over the parameters.
+    for hidden_layer in hidden_layers:
+        for hidden_neuron in hidden_neurons:
+            for learning_rate in learning_rates:
+                # Initialize the lists.
+                losses = []
+                gradients = []
+                # Iterate over the experiments.
+                for experiment_L, experiment_G in zip(experiments_L, experiments_G):
+                    # Append the results.
+                    losses.append(experiment_L)
+                    gradients.append(experiment_G)
+                # Plot the results.
+                plt.figure()
+                plt.subplot(211)
+                plt.plot(losses)
+                plt.title(
+                    f"Losses for hidden layers: {hidden_layer}, hidden neurons: {hidden_neuron}, learning rate: {learning_rate}"
+                )
+                plt.xlabel("epochs")
+                plt.ylabel("losses")
+                plt.subplot(212)
+                plt.plot(gradients)
+                plt.title(
+                    f"Gradients for hidden layers: {hidden_layer}, hidden neurons: {hidden_neuron}, learning rate: {learning_rate}"
+                )
+                plt.xlabel("epochs")
+                plt.ylabel("gradients")
+                plt.show()
 
-    print(MLP.fcn.layers[-1].weights)
+
+def main() -> None:
+    # Load the data.
+    all_inputs, all_outputs = load_data()
+    print(all_inputs[0])
+    # Initialize the parameters.
+    hidden_layers = [1]
+    hidden_neurons = [3]
+    learning_rates = [0.2]
+    epochs = 1
+    # Initialize the lists.
+    experiments_L = []
+    experiments_G = []
+    # Iterate over the parameters.
+    for hidden_layer in hidden_layers:
+        for hidden_neuron in hidden_neurons:
+            for learning_rate in learning_rates:
+                # print combination
+                print(
+                    f"hidden layers: {hidden_layer}, hidden neurons: {hidden_neuron}, learning rate: {learning_rate}"
+                )
+                # Initialize the neural network.
+                MLP = NeuralNetwork(
+                    hidden_layers=hidden_layer, hidden_neurons=hidden_neuron
+                )
+                # Fit the neural network.
+                losses, gradients = MLP.fit(
+                    all_inputs, all_outputs, epochs=epochs, lr=learning_rate
+                )
+                # Store the results.
+                experiments_L.append(losses)
+                experiments_G.append(gradients)
 
 
 if __name__ == "__main__":
