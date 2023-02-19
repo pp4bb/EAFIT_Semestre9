@@ -43,11 +43,8 @@ class Sequential:
         np.ndarray
             Output of the neural network.
         """
-        print("\nFORWARD\n")
         for layer in self.layers:
-            print(x)
             x = layer.forward(x)
-        print(x)
         return x
 
     def backward(self, dloss: float) -> list:
@@ -61,9 +58,7 @@ class Sequential:
         x = 0
         gradients = []
         aux = 0
-        print("\nBACKWARD\n")
         for layer in self.layers[::-1]:
-            print(f"Layer {aux}")
             aux += 1
             x = layer.backward(x, dloss)
             gradients.append(x)
@@ -78,10 +73,8 @@ class Sequential:
         lr: float
             Learning rate.
         """
-        print("\nSTEP\n")
         aux = 0
         for layer in self.layers:
-            print(f"Layer {aux}")
             aux += 1
             layer.step(lr)
 

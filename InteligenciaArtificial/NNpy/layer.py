@@ -78,6 +78,7 @@ class Layer:
         """
         self.data = x
         localfield = self.weights.T @ self.data + self.bias
+        self.data = localfield
         return self.phi(localfield, *self.args)
 
     def backward(self, grad: float, dloss=None) -> np.ndarray:
@@ -95,12 +96,13 @@ class Layer:
         np.ndarray
             Gradient of the weights.
         """
+
         localfield = self.data
         if self.last:
             self.gradient = self.dphi(localfield, *self.args) * dloss
         else:
             self.gradient = self.dphi(localfield, *self.args) * np.sum(
-                self.weights * grad, axis=1
+                self.weights * grad, axis=0
             )
         return self.gradient
 
@@ -111,10 +113,5 @@ class Layer:
         lr: float
             Learning rate.
         """
-        print(self.weights.shape)
-        print(self.gradient.shape)
-        print(self.data)
         delta = self.gradient * self.data
-        print(self.weights, lr, delta)
         self.weights += lr * delta
-        # sprint(self.weights)

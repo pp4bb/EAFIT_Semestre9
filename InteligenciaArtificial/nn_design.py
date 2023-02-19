@@ -43,7 +43,7 @@ class NeuralNetwork:
         """
         return self.fcn.forward(x)
 
-    def fit(self, x, y, epochs, lr) -> tuple:
+    def fit(self, x, y, epochs, lr, tolerance: float = 1e-2) -> tuple:
         """Fit the neural network to the data.
 
         Parameters
@@ -56,6 +56,8 @@ class NeuralNetwork:
             Number of epochs.
         lr: float
             Learning rate.
+        tolerance: float
+            Tolerance to stop the training.
 
         Returns
         -------
@@ -64,7 +66,7 @@ class NeuralNetwork:
         """
         meanlosses = []
         meangradients = [[] for layer in self.fcn.layers]
-        for epoch in tqdm(range(epochs), desc="Epochs"):
+        for epoch in tqdm(range(epochs), desc="Epochs", leave=False):
             losses = []
             gradients = []
             for i in range(len(x)):
@@ -85,5 +87,16 @@ class NeuralNetwork:
                 meangradients[i].append(
                     np.sum([grad[i] for grad in gradients]) / len(gradients)
                 )
+            # Check if the loss is less than the tolerance.
+            if losses[-1] < tolerance:
+                break
+            # Check if the gradients are still decreasing.
+            if len(meangradients[0]) > 1 and all(
+                [
+                    meangradients[i][-1] > meangradients[i][-2]
+                    for i in range(len(meangradients))
+                ]
+            ):
+                break
 
-        return meanlosses, meangradients
+        return np.array(meanlosses), np.array(meangradients)
