@@ -1,4 +1,4 @@
-from nn_design import NeuralNetwork
+from InteligenciaArtificial.tareas.tarea_NN_supervised.nn_design import NeuralNetwork
 import numpy as np
 
 

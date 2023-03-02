@@ -34,7 +34,7 @@ def normalize_data(data: np.ndarray, method: str) -> np.ndarray:
 
 def load_data() -> tuple:
     """Load the data."""
-    data = np.loadtxt("data/examen.csv", comments="#", delimiter=",", unpack=False)
+    data = np.loadtxt("examen.csv", comments="#", delimiter=",", unpack=False)
     # Normalize the data by column.
     data = normalize_data(data, "minmax")
     all_inputs = []
