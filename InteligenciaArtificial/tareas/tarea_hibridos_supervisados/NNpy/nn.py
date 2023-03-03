@@ -57,10 +57,11 @@ class Sequential:
             Loss of the neural network.
         """
         x = 0
+        y = 0
         gradients = []
         for layer in self.layers[::-1]:
-            x = layer.backward(x, dloss)
-            gradients.append(x)
+            x, y = layer.backward(x, y, dloss)
+            gradients.append([x, y])
 
         return gradients[::-1]
 

@@ -13,6 +13,8 @@ class Layer:
         Numpy array with the weights.
     gradient: np.ndarray
         Gradient of the weights.
+    bias_gradient: np.ndarray
+        Gradient of the bias.
     bias: np.ndarray
         Numpy array with the bias.
     last: bool
@@ -55,8 +57,9 @@ class Layer:
         else:
             self.bias = np.zeros(out_features)
         self.last = last
-        # Initialice the gradient.
+        # Initialice the gradients.
         self.gradient = None
+        self.bias_gradient = None
         # Initialice the functions.
         self.phi = None
         self.dphi = None
@@ -81,12 +84,14 @@ class Layer:
         self.localfield = self.weights.T @ self.data + self.bias
         return self.phi(self.localfield)
 
-    def backward(self, grad: float, dloss=None) -> np.ndarray:
+    def backward(self, grad, bias_grad, dloss=None) -> np.ndarray:
         """Backward pass of the layer.
         Parameters
         ----------
         grad: np.ndarray
             Gradient of the next layer.
+        bias_grad: np.ndarray
+            Gradient of the bias of the next layer.
         dloss: np.ndarray
             Loss of the layer. It must be provided only if the layer is the
             output layer.
@@ -99,11 +104,15 @@ class Layer:
 
         if self.last:
             self.gradient = self.dphi(self.localfield) * dloss
+            self.bias_gradient = self.dphi(self.localfield) * dloss
         else:
             self.gradient = self.dphi(self.localfield) * np.sum(
                 self.weights * grad, axis=0
             )
-        return self.gradient
+            self.bias_gradient = self.dphi(self.localfield) * np.sum(
+                self.bias * bias_grad, axis=0
+            )
+        return self.gradient, self.bias_gradient
 
     def step(self, lr: float) -> None:
         """Updates the weights of the layer.
@@ -112,8 +121,19 @@ class Layer:
         lr: float
             Learning rate.
         """
+        # Update the weights.
         delta = np.zeros(self.weights.shape)
         for x in range(self.data.shape[0]):
             for g in range(self.gradient.shape[0]):
                 delta[x, g] = self.data[x] * self.gradient[g]
         self.weights += lr * delta
+
+        # Update the bias.
+        print("\n", self.bias, "BIAS")
+        print(self.bias_gradient, "BGRADIENT")
+        print(self.data, "DATA")
+        delta = np.zeros(self.bias.shape)
+        for x in range(self.data.shape[0]):
+            for g in range(self.bias_gradient.shape[0]):
+                delta[x, g] = self.data[x] * self.gradient[g]
+        self.bias += lr * delta

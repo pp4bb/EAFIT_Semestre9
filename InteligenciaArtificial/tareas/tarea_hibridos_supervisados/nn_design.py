@@ -38,22 +38,22 @@ class NeuralNetwork:
 
         if phi == "sigmoid":
             self.fcn = nn.Sequential(
-                nn.Sigmoid(in_features, hidden_neurons),
+                nn.Sigmoid(in_features, hidden_neurons, bias=True),
                 *[
-                    nn.Sigmoid(hidden_neurons, hidden_neurons)
+                    nn.Sigmoid(hidden_neurons, hidden_neurons, bias=True)
                     for _ in range(hidden_layers)
                 ],
-                nn.Sigmoid(hidden_neurons, 1, last=True),
+                nn.Sigmoid(hidden_neurons, 1, last=True, bias=True),
             )
 
         elif phi == "linear":
             self.fcn = nn.Sequential(
-                nn.Linear(in_features, hidden_neurons, 1, 0.5),
+                nn.Linear(in_features, hidden_neurons, 1, 0.5, bias=True),
                 *[
-                    nn.Linear(hidden_neurons, hidden_neurons, 1, 0.5)
+                    nn.Linear(hidden_neurons, hidden_neurons, 1, 0.5, bias=True)
                     for _ in range(hidden_layers)
                 ],
-                nn.Linear(hidden_neurons, 1, True, 1, 0.5),
+                nn.Linear(hidden_neurons, 1, True, 1, 0.5, bias=True),
             )
 
     def forward(self, x) -> np.ndarray:
