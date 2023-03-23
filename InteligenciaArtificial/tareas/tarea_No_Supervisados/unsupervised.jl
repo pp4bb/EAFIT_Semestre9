@@ -1,5 +1,5 @@
 using Statistics
-
+using Logging
 ########################################################################################
 #                                     Metrics
 ########################################################################################
@@ -14,8 +14,8 @@ Compute the euclidean distance between two vectors.
 # Returns
 - `Float64`: Euclidean distance between `x` and `y`.
 """
-function euclidean_distance(x::Array{Float64,1}, y::Array{Float64,1})::Float64
-    return sqrt(sum((x - y) .^ 2))
+function euclidean_distance(x, y)
+    return sqrt(sum((x .- y) .^ 2))
 end
 
 """
@@ -78,9 +78,9 @@ Computes the mountain clustering algorithm for a given dataset.
 # Returns
 - `Array{Int64,1}`: Cluster labels.
 """
-function mountain_clustering(X::Array{Float64,2}, k::Int64, metric::Function, sigma::Float64)::Array{Int64,1}
-    # Mountain density function
-    mountain(d, sigma=sigma) = exp(-d^2 / (2 * sigma^2))
+function mountain_clustering(X::Array{Float64,2}, sigma::Float64, beta::Float64, gr::Int64, metric::Function)
+    # Cluster centers
+    C = Vector()
     # m = number of samples, n = number of features
     m, n = size(X)
     #------------------------------------------------------------------
@@ -88,7 +88,6 @@ function mountain_clustering(X::Array{Float64,2}, k::Int64, metric::Function, si
     # (n = the dimension of input data vectors)
     # The gridding granularity is 'gr' = # of grid points per dimension
     #------------------------------------------------------------------
-    gr = 2
     # create a grid matrix of n-dimensions
     V = zeros(gr^n, n)
     # create a vector of gr equally spaced points in the range [0,1]
@@ -111,14 +110,55 @@ function mountain_clustering(X::Array{Float64,2}, k::Int64, metric::Function, si
     end
     # calculate the mountain height at each grid point
     H = zeros(gr^n)
-    for i = 1:gr^n
+    # Mountain density function
+    mountain(d, σ=sigma) = exp(-d^2 / (2 * sigma^2))
+
+    for i = 1:1
         H[i] = sum(mountain.(D[:, i]))
     end
+
+
+    while true
+        #------------------------------------------------------------------
+        # Third: find the  highest peak in the mountain
+        #------------------------------------------------------------------
+        # find the highest peak in the mountain and append it to C
+        peak = argmax(H)
+        @info H
+        # display the values of H that are greater than 0.0
+        # (this is to see the evolution of the mountain)
+        display(H[H.>0.1])
+        push!(C, V[peak, :])
+        #------------------------------------------------------------------
+        # Fourth: compute the value of the new mountain height at each grid
+        # point. 
+        # It requires to eliminate the influence of the previous 
+        # cluster center.
+        #------------------------------------------------------------------
+        # update the mountain heights by eliminating the influence of the
+        # previous cluster center
+        for i = 1:gr^n
+            H[i] = H[i] - H[peak] * mountain(metric(V[i, :], V[peak, :]), beta)
+        end
+        #------------------------------------------------------------------
+        # Repeat until the cluster centers do not change or if the peak
+        # is lower than a threshold.
+        #------------------------------------------------------------------
+        # check if the peak is lower than a threshold
+        if length(C) > 1 && C[end-1] == C[end]
+            break
+        end
+    end
     #------------------------------------------------------------------
-    # Third: find the  highest peak in the mountain
+    # Fifth: assign each data vector to the nearest cluster center
     #------------------------------------------------------------------
-    # find the highest peak in the mountain
-    peak = argmax(H)
+    labels = zeros(Int64, m)
+
+    for i = 1:m
+        labels[i] = argmin(metric.(X[i, :], C))
+    end
+
+    return C, labels
 
 
 end
