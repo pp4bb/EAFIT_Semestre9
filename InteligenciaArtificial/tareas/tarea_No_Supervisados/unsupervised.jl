@@ -113,7 +113,7 @@ function mountain_clustering(X::Array{Float64,2}, sigma::Float64, beta::Float64,
     # Mountain density function
     mountain(d, σ=sigma) = exp(-d^2 / (2 * sigma^2))
 
-    for i = 1:1
+    for i = 1:gr^n
         H[i] = sum(mountain.(D[:, i]))
     end
 
@@ -124,10 +124,8 @@ function mountain_clustering(X::Array{Float64,2}, sigma::Float64, beta::Float64,
         #------------------------------------------------------------------
         # find the highest peak in the mountain and append it to C
         peak = argmax(H)
-        @info H
         # display the values of H that are greater than 0.0
         # (this is to see the evolution of the mountain)
-        display(H[H.>0.1])
         push!(C, V[peak, :])
         #------------------------------------------------------------------
         # Fourth: compute the value of the new mountain height at each grid
@@ -145,7 +143,7 @@ function mountain_clustering(X::Array{Float64,2}, sigma::Float64, beta::Float64,
         # is lower than a threshold.
         #------------------------------------------------------------------
         # check if the peak is lower than a threshold
-        if length(C) > 1 && C[end-1] == C[end]
+        if H[peak] < 0.1
             break
         end
     end
@@ -155,7 +153,11 @@ function mountain_clustering(X::Array{Float64,2}, sigma::Float64, beta::Float64,
     labels = zeros(Int64, m)
 
     for i = 1:m
-        labels[i] = argmin(metric.(X[i, :], C))
+        distances = zeros(length(C))
+        for j = 1:length(C)
+            distances[j] = metric(X[i, :], C[j])
+        end
+        labels[i] = argmin(distances)
     end
 
     return C, labels
