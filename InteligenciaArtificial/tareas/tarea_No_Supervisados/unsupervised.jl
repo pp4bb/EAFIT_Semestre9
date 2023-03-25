@@ -111,10 +111,10 @@ function mountain_clustering(X::Array{Float64,2}, sigma::Float64, beta::Float64,
     # calculate the mountain height at each grid point
     H = zeros(gr^n)
     # Mountain density function
-    mountain(d, σ=sigma) = exp(-d^2 / (2 * sigma^2))
+    mountain(d, σ) = exp(-d^2 / (2 * σ^2))
 
     for i = 1:gr^n
-        H[i] = sum(mountain.(D[:, i]))
+        H[i] = sum(mountain.(D[:, i], sigma))
     end
 
 
@@ -124,9 +124,11 @@ function mountain_clustering(X::Array{Float64,2}, sigma::Float64, beta::Float64,
         #------------------------------------------------------------------
         # find the highest peak in the mountain and append it to C
         peak = argmax(H)
-        # display the values of H that are greater than 0.0
         # (this is to see the evolution of the mountain)
         push!(C, V[peak, :])
+        if H[peak] < sigma
+            break
+        end
         #------------------------------------------------------------------
         # Fourth: compute the value of the new mountain height at each grid
         # point. 
@@ -137,14 +139,6 @@ function mountain_clustering(X::Array{Float64,2}, sigma::Float64, beta::Float64,
         # previous cluster center
         for i = 1:gr^n
             H[i] = H[i] - H[peak] * mountain(metric(V[i, :], V[peak, :]), beta)
-        end
-        #------------------------------------------------------------------
-        # Repeat until the cluster centers do not change or if the peak
-        # is lower than a threshold.
-        #------------------------------------------------------------------
-        # check if the peak is lower than a threshold
-        if H[peak] < 0.1
-            break
         end
     end
     #------------------------------------------------------------------
