@@ -3,11 +3,11 @@ using Logging
 include("utils.jl")
 
 ########################################################################################
-#                            centerslustering Algorithms
+#                            Clustering Algorithms
 ########################################################################################
 """
     mountain_clustering(X::Array{Float64,2}, k::Int64, metric::Function)
-centersomputes the mountain clustering algorithm for a given dataset.
+computes the mountain clustering algorithm for a given dataset.
 
 # Arguments
 - `X::Array{Float64,2}`: Dataset.
@@ -15,8 +15,8 @@ centersomputes the mountain clustering algorithm for a given dataset.
 - `metric::Function`: Distance metric.
 
 # Returns
-- `Array{Array{Float64,1},1}`: centersluster centers.
-- `Array{Int64,1}`: centersluster labels.
+- `Array{Array{Float64,1},1}`: cluster centers.
+- `Array{Int64,1}`: cluster labels.
 """
 function mountain_clustering(X::Array{Float64,2}; sigma::Float64=0.5, beta::Float64=0.5, gr::Int64=10, metric::Function=euclidean_distance)
     # cluster centers
@@ -101,7 +101,7 @@ end
 
 """
     subtracting_clustering(X::Array{Float64,2}, r::Float64, metric::Function)::Array{Int64,1}
-centersomputes the subtracting clustering algorithm for a given dataset.
+computes the subtracting clustering algorithm for a given dataset.
 
 # Arguments
 - `X::Array{Float64,2}`: Dataset.
@@ -109,8 +109,8 @@ centersomputes the subtracting clustering algorithm for a given dataset.
 - `metric::Function`: Distance metric.
 
 # Returns
-- `Array{Array{Float64,1},1}`: centersluster centers.
-- `Array{Int64,1}`: centersluster labels.
+- `Array{Array{Float64,1},1}`: cluster centers.
+- `Array{Int64,1}`: cluster labels.
 """
 function subtracting_clustering(X::Array{Float64,2}; ra::Float64, rb::Float64=0.5, metric::Function=euclidean_distance)
     # cluster centers
@@ -174,7 +174,17 @@ function subtracting_clustering(X::Array{Float64,2}; ra::Float64, rb::Float64=0.
 end
 
 """
+    kmeans_clustering(X::Array{Float64,2}, k::Int64, metric::Function)::Array{Int64,1}
+computes the k-means clustering algorithm for a given dataset.
 
+# Arguments
+- `X::Array{Float64,2}`: Dataset.
+- `k::Int64`: Number of centers.
+- `metric::Function`: Distance metric.
+
+# Returns
+- `Array{Array{Float64,1},1}`: cluster centers.
+- `Array{Int64,1}`: cluster labels.
 """
 function kmeans_clustering(X::Array{Float64,2}; k::Int64, metric::Function=euclidean_distance)
     # m = number of samples, n = number of features
@@ -229,7 +239,70 @@ function kmeans_clustering(X::Array{Float64,2}; k::Int64, metric::Function=eucli
         labels[i] = argmax(U[i, :])
     end
     centers, labels = filter_centers(X, centers, labels, metric)
-    return centers, labels
+    return centers, labels, losses
+end
+
+"""
+
+"""
+function fuzzyCmeans_clustering(X::Array{Float64,2}; k::Int64, e::Float64=2.0, metric::Function=euclidean_distance)
+    # m = number of samples, n = number of features
+    m, n = size(X)
+    # membership matrix
+    U = zeros(m, k)
+    #------------------------------------------------------------------
+    # First: randomly select k data vectors as cluster centers
+    #------------------------------------------------------------------
+    centers = [X[i,1:n] for i in rand(1:size(X, 1), k)]
+    # Vector to track the loss function at each iteration
+    losses = Vector()
+    while true
+        # precompute the distances between each data vector and each cluster center
+        distances = zeros(m, k)
+        for i = 1:m
+            for j = 1:k
+                distances[i, j] = metric(X[i, :], centers[j])
+            end
+        end
+        #------------------------------------------------------------------
+        # Second: Determine the membership matrix U
+        #------------------------------------------------------------------
+        U = zeros(m, k)
+        for i = 1:m
+            for j = 1:k
+                U[i, j] = 1 / sum([(distances[i, j] / distances[i, l])^(2/(e-1)) for l = 1:k])
+            end
+        end
+        #------------------------------------------------------------------
+        # Third: update the cluster centers
+        #------------------------------------------------------------------
+        for i = 1:1
+            numerator = sum([U[j, i]^e * X[j, :] for j = 1:m], dims=1)
+            denominator = sum([U[j, i]^e for j = 1:m])
+            coordinates = numerator / denominator
+            @info coordinates [coordinates[1, j] for j in 1:n]
+            centers[i] = [coordinates[1, j] for j in 1:n]
+        end
+        #------------------------------------------------------------------
+        # Fourth: compute the loss function
+        #------------------------------------------------------------------
+        loss = sum([sum(U[i,j]^e * metric(centers[k],X[i,:])) for j = 1:k] for i = 1:m)
+        push!(losses, loss)
+        # break criterion
+        if length(losses) > 1 && losses[end-1] == losses[end]
+            break
+        end
+    end
+    #------------------------------------------------------------------
+    # Fifth: assign each data vector to the nearest cluster center using
+    # the membership matrix
+    #------------------------------------------------------------------
+    labels = zeros(Int64, m)
+    for i = 1:m
+        labels[i] = argmax(U[i, :])
+    end
+    centers, labels = filter_centers(X, centers, labels, metric)
+    return centers, labels, losses
 
 end
 

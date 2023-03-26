@@ -1,4 +1,6 @@
 using Plots
+plotlyjs(size=(1000, 800))
+using Colors
 
 # filter cluster centers
 function filter_centers(X, centers, labels, metric)
@@ -41,10 +43,10 @@ function plot_clusters(X, clusters, centers=nothing, title="", xlabel="", ylabel
     palette = distinguishable_colors(n_clusters)
 
     # Plot clusters with axes labels with sizes 20 and 30 respectively.
-    plot(title=title, xlabel=xlabel, ylabel=ylabel, zlabel=zlabel, size=(600, 400))
+    p = plot(;title=title, xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
     # plot 2d if X has 2 features, otherwise plot 3d
     if size(X, 2) == 2
-        scatter!(X[:, 1], X[:, 2], group=clusters, color_palette=palette,legend=false)
+        scatter!(p, X[:, 1], X[:, 2], group=clusters, color_palette=palette,legend=false)
         # if centers are provided, add them to the plot
         if centers !== nothing
             # Add cluster centers to the plot with the corresponding color from the palette
@@ -56,7 +58,7 @@ function plot_clusters(X, clusters, centers=nothing, title="", xlabel="", ylabel
             end
         end
     else
-        scatter!(X[:, 1], X[:, 2], X[:, 3], group=clusters, color_palette=palette,legend=false)
+        scatter!(p, X[:, 1], X[:, 2], X[:, 3], group=clusters, color_palette=palette,legend=false)
         # if centers are provided, add them to the plot
     if centers !== nothing
         # Add cluster centers to the plot with the corresponding color from the palette
@@ -68,6 +70,6 @@ function plot_clusters(X, clusters, centers=nothing, title="", xlabel="", ylabel
         end
     end
     end
-    
-    display(plot!(size=(600, 400)))
+    # display plot
+    plot(p, size=(1200, 1000))
 end
