@@ -1,5 +1,5 @@
 using Plots
-plotlyjs(size=(1000, 800))
+gr()
 using Colors
 
 # filter cluster centers
@@ -37,7 +37,7 @@ function filter_centers(X, centers, labels, metric)
 end
 
 # Plot clusters
-function plot_clusters(X, clusters, centers=nothing, title="", xlabel="", ylabel="", zlabel="")
+function plot_clusters(X; clusters, centers=nothing, title="", xlabel="", ylabel="", zlabel="")
     # Generate a color palette that matches the number of clusters
     n_clusters = length(clusters)
     palette = distinguishable_colors(n_clusters)
@@ -71,5 +71,5 @@ function plot_clusters(X, clusters, centers=nothing, title="", xlabel="", ylabel
     end
     end
     # display plot
-    plot(p, size=(1200, 1000))
+    plot(p)
 end

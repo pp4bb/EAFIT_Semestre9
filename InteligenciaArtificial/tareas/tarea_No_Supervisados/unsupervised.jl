@@ -1,4 +1,5 @@
-using Statistics
+using Statistics, LinearAlgebra
+using Clustering
 using Logging
 include("utils.jl")
 
@@ -18,7 +19,13 @@ computes the mountain clustering algorithm for a given dataset.
 - `Array{Array{Float64,1},1}`: cluster centers.
 - `Array{Int64,1}`: cluster labels.
 """
-function mountain_clustering(X::Array{Float64,2}; sigma::Float64=0.5, beta::Float64=0.5, gr::Int64=10, metric::Function=euclidean_distance)
+function mountain_clustering(
+    X::Array{Float64,2}; 
+    sigma::Float64=0.5, 
+    beta::Float64=0.5, 
+    gr::Int64=10, 
+    metric::Function=euclidean_distance
+    )
     # cluster centers
     centers = Vector()
     # m = number of samples, n = number of features
@@ -100,6 +107,48 @@ function mountain_clustering(X::Array{Float64,2}; sigma::Float64=0.5, beta::Floa
 end
 
 """
+    opt_mtn_args(X::Array{Float64,2}, gr::Int64, metric::Function)
+computes the optimal parameters for the mountain clustering algorithm.
+
+# Arguments
+- `X::Array{Float64,2}`: Dataset.
+- `gr::Int64`: Grid granularity.
+- `metric::Function`: Distance metric.
+- `ranges::StepRangeLen`: Range of sigma and beta.
+
+# Returns
+- `Tuple{Float64,Float64}`: Optimal sigma and beta.
+"""
+function opt_mtn_args(X::Array{Float64,2}; 
+    gr::Int64=10, 
+    metric::Function=euclidean_distance, 
+    ranges::StepRangeLen=0.1:0.1:1.0
+    )
+    # Distances between data points
+    distances = pairwise(metric, eachrow(X))
+    sigmas = ranges
+    betas = ranges
+    # all combinations of sigma and beta
+    args = [(s, b) for s in sigmas, b in betas]
+    max_s = 0
+    max_args = (0, 0)
+    for i in eachindex(args)
+        centers, clusters = mountain_clustering(X, sigma=args[i][1], beta=args[i][2], gr=gr, metric=metric)
+        # if all data points are assigned to the same cluster continue
+        if length(unique(clusters)) == 1
+            continue
+        end
+        # compute silhouette score
+        s = mean(silhouettes(clusters, distances))
+        if s > max_s
+            max_s = s
+            max_args = args[i]
+        end
+    end
+    return max_s, max_args
+end
+
+"""
     subtracting_clustering(X::Array{Float64,2}, r::Float64, metric::Function)::Array{Int64,1}
 computes the subtracting clustering algorithm for a given dataset.
 
@@ -112,7 +161,11 @@ computes the subtracting clustering algorithm for a given dataset.
 - `Array{Array{Float64,1},1}`: cluster centers.
 - `Array{Int64,1}`: cluster labels.
 """
-function subtracting_clustering(X::Array{Float64,2}; ra::Float64, rb::Float64=0.5, metric::Function=euclidean_distance)
+function subtracting_clustering(X::Array{Float64,2};
+    ra::Float64, 
+    rb::Float64=0.5, 
+    metric::Function=euclidean_distance
+    )
     # cluster centers
     centers = Vector()
     # m = number of samples, n = number of features
@@ -174,6 +227,38 @@ function subtracting_clustering(X::Array{Float64,2}; ra::Float64, rb::Float64=0.
 end
 
 """
+    opt_sub_args(X::Array{Float64,2}, r::Float64, metric::Function)::Array{Int64,1}
+computes the optimal parameters for the subtracting clustering algorithm.
+
+# Arguments
+- `X::Array{Float64,2}`: Dataset.
+- `ranges::StepRangeLen`: Range of values for sigma and beta.
+"""
+function opt_sub_args(X; ranges::StepRangeLen=0.1:0.1:1.0)
+    # Distances between data points
+    distances = pairwise(euclidean_distance, eachrow(X))
+    ra = ranges
+    # all combinations of sigma and beta
+    args = [(i, 1.5*i) for i in ra]
+    max_s = 0
+    max_args = (0, 0)
+    for i in eachindex(args)
+        centers, clusters = subtracting_clustering(X, ra=args[i][1], rb=args[i][2])
+        # if all data points are assigned to the same cluster continue
+        if length(unique(clusters)) == 1
+            continue
+        end
+        # compute silhouette score
+        s = mean(silhouettes(clusters, distances))
+        if s > max_s
+            max_s = s
+            max_args = args[i]
+        end
+    end
+    return max_s, max_args
+end
+
+"""
     kmeans_clustering(X::Array{Float64,2}, k::Int64, metric::Function)::Array{Int64,1}
 computes the k-means clustering algorithm for a given dataset.
 
@@ -185,8 +270,13 @@ computes the k-means clustering algorithm for a given dataset.
 # Returns
 - `Array{Array{Float64,1},1}`: cluster centers.
 - `Array{Int64,1}`: cluster labels.
+- `Array{Float64,1}`: loss function.
 """
-function kmeans_clustering(X::Array{Float64,2}; k::Int64, metric::Function=euclidean_distance)
+function kmeans_clustering(
+    X::Array{Float64,2}; 
+    k::Int64,
+    metric::Function=euclidean_distance
+    )
     # m = number of samples, n = number of features
     m, n = size(X)
     # membership matrix
@@ -243,9 +333,26 @@ function kmeans_clustering(X::Array{Float64,2}; k::Int64, metric::Function=eucli
 end
 
 """
+    fuzzyCmeans_clustering(X::Array{Float64,2}, k::Int64, e::Float64, metric::Function)
+computes the fuzzy c-means clustering algorithm for a given dataset.
 
+# Arguments
+- `X::Array{Float64,2}`: Dataset.
+- `k::Int64`: Number of centers.
+- `e::Float64`: Fuzziness parameter.
+- `metric::Function`: Distance metric.
+
+# Returns
+- `Array{Array{Float64,1},1}`: cluster centers.
+- `Array{Int64,1}`: cluster labels.
+- `Array{Float64,1}`: loss function.
 """
-function fuzzyCmeans_clustering(X::Array{Float64,2}; k::Int64, e::Float64=2.0, metric::Function=euclidean_distance)
+function fuzzyCmeans_clustering(
+    X::Array{Float64,2};
+    k::Int64, 
+    e::Float64=2.0, 
+    metric::Function=euclidean_distance
+    )
     # m = number of samples, n = number of features
     m, n = size(X)
     # membership matrix
@@ -271,22 +378,30 @@ function fuzzyCmeans_clustering(X::Array{Float64,2}; k::Int64, e::Float64=2.0, m
         for i = 1:m
             for j = 1:k
                 U[i, j] = 1 / sum([(distances[i, j] / distances[i, l])^(2/(e-1)) for l = 1:k])
+                if isnan(U[i, j])
+                    U[i, j] = 1
+                end
             end
         end
+
         #------------------------------------------------------------------
         # Third: update the cluster centers
         #------------------------------------------------------------------
-        for i = 1:1
+        for i = 1:k
             numerator = sum([U[j, i]^e * X[j, :] for j = 1:m], dims=1)
             denominator = sum([U[j, i]^e for j = 1:m])
-            coordinates = numerator / denominator
-            @info coordinates [coordinates[1, j] for j in 1:n]
-            centers[i] = [coordinates[1, j] for j in 1:n]
+            coordinates = (numerator / denominator)[1]
+            centers[i] = coordinates
         end
         #------------------------------------------------------------------
         # Fourth: compute the loss function
         #------------------------------------------------------------------
-        loss = sum([sum(U[i,j]^e * metric(centers[k],X[i,:])) for j = 1:k] for i = 1:m)
+        # compute pairwise distances between each point and each center
+        D = pairwise(metric, eachrow(X), centers)
+        Ue = U .^ e # raise membership matrix U to the e-th power       
+        UD = Ue .* D # compute the element-wise product between Ue and D       
+        loss = sum(UD, dims=2) # compute the sum of the rows of UD
+        loss = sum(loss) # compute the total loss
         push!(losses, loss)
         # break criterion
         if length(losses) > 1 && losses[end-1] == losses[end]
@@ -303,6 +418,67 @@ function fuzzyCmeans_clustering(X::Array{Float64,2}; k::Int64, e::Float64=2.0, m
     end
     centers, labels = filter_centers(X, centers, labels, metric)
     return centers, labels, losses
-
 end
 
+"""
+    agnes_clustering(X::Array{Float64, 2}, k::Int64, metric::Function)
+computes the agglomerative hierarchical clustering algorithm for a given dataset.
+
+# Arguments
+- `X::Array{Float64, 2}`: Dataset.
+- `k::Int64`: Number of clusters.
+- `metric::Function`: Distance metric.
+
+# Returns
+- `Array{Array{Float64, 1}, 1}`: cluster centers.
+- `Array{Int64, 1}`: cluster labels.
+"""
+function agnes_clustering(
+    X::Array{Float64, 2}; 
+    k::Int64, 
+    metric::Function=euclidean_distance
+    )
+    # m = number of samples, n = number of features
+    m, n = size(X)
+    #------------------------------------------------------------------
+    # First: initialice clustering with all data points as singletons
+    # and compute the distances between each pair of data points
+    #------------------------------------------------------------------
+    centers = [X[i,1:n] for i in 1:m]
+    distances = pairwise(metric, eachrow(X), centers)
+    # set diagonal to Inf to avoid self-merging
+    distances[diagind(distances)] .= Inf
+    # iterate until we have k clusters
+    while length(centers) > k
+        #------------------------------------------------------------------
+        # Second: find the closest pair of clusters
+        #------------------------------------------------------------------
+        minidx = argmin(distances)
+        #------------------------------------------------------------------
+        # Third: merge the closest pair of clusters
+        #------------------------------------------------------------------
+        # compute the new center
+        newcenter = (centers[minidx[1]] + centers[minidx[2]]) / 2
+        # remove the old centers
+        deleteat!(centers, max(minidx[1], minidx[2]))
+        deleteat!(centers, min(minidx[1], minidx[2]))
+        # add the new center
+        push!(centers, newcenter)
+        #------------------------------------------------------------------
+        # Fourth: update the distances between each pair of clusters
+        #------------------------------------------------------------------
+        cmat = transpose(hcat(centers...))
+        cmat[diagind(cmat)] .= Inf
+        distances = pairwise(metric, eachrow(cmat), cmat)
+    end
+    #------------------------------------------------------------------
+    # Fifth: assign each data vector to the nearest cluster center
+    #------------------------------------------------------------------
+    labels = zeros(Int64, m)
+    for i = 1:m
+        labels[i] = argmin([metric(X[i, :], centers[j]) for j in eachindex(centers)])
+    end
+    # filter the centers
+    centers, labels = filter_centers(X, centers, labels, metric)
+    return centers, labels
+end
