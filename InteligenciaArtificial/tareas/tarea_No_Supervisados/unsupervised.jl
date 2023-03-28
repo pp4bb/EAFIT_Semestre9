@@ -404,7 +404,7 @@ function fuzzyCmeans_clustering(
         loss = sum(loss) # compute the total loss
         push!(losses, loss)
         # break criterion
-        if length(losses) > 1 && losses[end-1] == losses[end]
+        if length(losses) > 1 && (losses[end-1] - losses[end] < 1e-6)
             break
         end
     end

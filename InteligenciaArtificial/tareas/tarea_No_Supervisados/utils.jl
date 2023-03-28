@@ -57,18 +57,18 @@ function plot_clusters(X; clusters, centers=nothing, title="", xlabel="", ylabel
                     color=palette[i])
             end
         end
-    else
+    elseif size(X, 2) == 3
         scatter!(p, X[:, 1], X[:, 2], X[:, 3], group=clusters, color_palette=palette,legend=false)
         # if centers are provided, add them to the plot
-    if centers !== nothing
-        # Add cluster centers to the plot with the corresponding color from the palette
-        for i in eachindex(centers)
-            scatter!((centers[i][1], centers[i][2], centers[i][3]),
-                markersize=7,
-                markerstrokewidth=2,
-                color=palette[i])
+        if centers !== nothing
+            # Add cluster centers to the plot with the corresponding color from the palette
+            for i in eachindex(centers)
+                scatter!((centers[i][1], centers[i][2], centers[i][3]),
+                    markersize=7,
+                    markerstrokewidth=2,
+                    color=palette[i])
+            end
         end
-    end
     end
     # display plot
     plot(p)
