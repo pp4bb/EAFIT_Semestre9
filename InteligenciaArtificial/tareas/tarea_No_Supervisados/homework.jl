@@ -1,6 +1,6 @@
 using Pkg
 Pkg.instantiate()
-#run(`pip install -r requirements.txt`)
+run(`pip install -r requirements.txt`)
 using MLDatasets, DataFrames, CSV
 using Statistics, StatsBase
 using ColorSchemes
@@ -26,7 +26,8 @@ expanded = Matrix(expanded[:, 1:end])
 # n_components was set to 3 to be able to plot the data
 embedding = umap.UMAP(n_components=2, n_neighbors=20, min_dist=0.4).fit_transform(original)
 # store the data in a vector
-data = [expanded, original, embedding]
+#data = [expanded, original, embedding]
+data = [Matrix{Float64}(D) for D in [expanded, original, embedding]]
 #------------------------------------------------------------------
 # CLUSTERING
 #------------------------------------------------------------------
@@ -41,9 +42,18 @@ Runs the homework for the given datasets.
 function homework(datasets::Vector{Matrix{Float64}}; metric::Function=euclidean_distance)
     # Calculate the distances between the points
     distances = [pairwise(metric, eachrow(X)) for X in datasets]
+    # grid param for mountain clustering
     gr = 10
+    # ranges for the other clustering algorithms
     for i in eachindex(datasets)
         m, n = size(datasets[i])
+        if n < 4
+            rangesM = 0.1:0.1:5.0
+            rangesS = 0.1:0.1:10.0
+        else
+            rangesM = 0.1:0.1:1.0
+            rangesS = 0.1:0.1:1.0
+        end
         #print 30x"_"
         println(repeat("_", 88))
         @info "DATASET $(i)"
@@ -58,16 +68,18 @@ function homework(datasets::Vector{Matrix{Float64}}; metric::Function=euclidean_
         mnt_data = Matrix{Float64}(mnt_data)
         # Get the best parameters for the other cluster Algorithms
         @info "Optmizing parameters for mountain clustering..."
-        best_mtn = opt_mtn_args(mnt_data, gr=gr) # Get the best parameters for mountain clustering
+        best_mtn = opt_mtn_args(mnt_data, gr=gr, ranges=rangesM) # Get the best parameters for mountain clustering
         @info "Optmizing parameters for subtracting clustering..."
-        best_sub = opt_sub_args(datasets[i]) # Get the best parameters for subtracting clustering
+        best_sub = opt_sub_args(datasets[i], ranges=rangesS) # Get the best parameters for subtracting clustering
         best_args = maximum([best_mtn[1], best_sub[1]]) # Compare the mean(silhouettes)
         if best_args == best_mtn[1]
             @info "Mountain clustering is the best clustering according to the silhouette index"
             centers, clusters = mountain_clustering(mnt_data, sigma=best_mtn[2][1], beta=best_mtn[2][2], gr=gr, metric=metric)
+            @info "The best args are: $(best_mtn[2])"
         else
             @info "Subtracting clustering is the best clustering according to the silhouette index"
             centers, clusters = subtracting_clustering(datasets[i], ra=best_sub[2][1], rb=best_sub[2][2], metric=metric)
+            @info "The best args are: $(best_sub[2])"
         end
         # Get the number of clusters
         n_clusters = length(centers)
@@ -115,10 +127,10 @@ function homework(datasets::Vector{Matrix{Float64}}; metric::Function=euclidean_
         savefig(p, "loss_$(i).png")
         # Plot the results if the data is 2D or 3D
         if size(datasets[i], 2) == 2 || size(datasets[i], 2) == 3
-            p1 = plot_clusters(X, clusters=clusters, centers=centers, title="Exploratory Clustering")
-            p2 = plot_clusters(X, clusters=kmeans_results[2], centers=kmeans_results[1], title="Kmeans Clustering")
-            p3 = plot_clusters(X, clusters=fuzzyCmeans_results[2], centers=fuzzyCmeans_results[1], title="FuzzyCmeans Clustering")
-            p4 = plot_clusters(X, clusters=agnes_results[2], centers=agnes_results[1], title="Agnes Clustering")
+            p1 = plot_clusters(datasets[i], clusters=clusters, centers=centers, title="Exploratory Clustering")
+            p2 = plot_clusters(datasets[i], clusters=kmeans_results[2], centers=kmeans_results[1], title="Kmeans Clustering")
+            p3 = plot_clusters(datasets[i], clusters=fuzzyCmeans_results[2], centers=fuzzyCmeans_results[1], title="FuzzyCmeans Clustering")
+            p4 = plot_clusters(datasets[i], clusters=agnes_results[2], centers=agnes_results[1], title="Agnes Clustering")
             p = plot(p1, p2, p3, p4, layout=(2, 2), size=(1000, 1000))
             # Save the plot
             savefig(p, "clustering_$(i).png")
