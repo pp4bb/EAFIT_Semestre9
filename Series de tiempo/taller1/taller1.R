@@ -46,6 +46,25 @@ for (i in 1:length(phis)) {
 ###########################
 # PUNTO 6
 ###########################
+set.seed(123) # para reproducibilidad
+n <- 500
+y <- numeric(n)
+epsilon <- rnorm(n, mean = 0, sd = 1)
+for (i in 2:n) {
+    y[i] <- 0.9 * y[i - 1] + epsilon[i] - 0.9 * epsilon[i - 1]
+}
+y <- diff(y)
+
+# Calcular la ACF y la PACF de los datos simulados
+par(mfrow = c(1, 3))
+plot(y, type = "l", main = "Datos simulados del modelo ARMA")
+acf(y, main = "ACF de los datos simulados")
+pacf(y, main = "PACF de los datos simulados")
+
+# Ajustar un modelo ARMA(1,1) a los datos simulados
+fit <- arima(y, order = c(1, 0, 1))
+fit$coef
+
 
 ###########################
 # PUNTO 7
