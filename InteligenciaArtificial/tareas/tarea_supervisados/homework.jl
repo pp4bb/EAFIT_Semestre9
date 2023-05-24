@@ -76,6 +76,8 @@ function vc_dimension(X; algorithm::String="linear", degree::Int64=1)::Int64
         return n + 1
     elseif algorithm == "polinomial_svm"
         return n + 1 + degree
+    elseif algorithm == "radial_svm"
+        return 2^n
     else
         return 2^n
     end
@@ -103,11 +105,12 @@ function homework(datasets::Vector{Matrix{Float64}}; metric::Function=euclidean_
         #Function that calculates the optimal training set size
         optimal_training_set_size(ϵ, δ, vc_dim) -> (1/ϵ) * (log(vc_dim)+log(1/δ))
         #Function that calculates the optimal training set size for DecisionTreeClassifier
-        optimal_training_set_size_tree(ϵ, δ, depyh, m) -> log(2)/(2*ϵ^2)*((2^depth))
+        optimal_training_set_size_tree(ϵ, δ, depth, m) -> log(2)/(2*ϵ^2)*((2^depth-1)*(1+log2(m)))+1+log(1/δ)
         #VC dimensions
         vc_linear = vc_dimension(datasets[i], algorithm="linear")
         vc_lsvm = vc_dimension(datasets[i], algorithm="linear_svm")
         vc_psvm = vc_dimension(datasets[i], algorithm="polinomial_svm", degree=3)
+        vc_rsvm = vc_dimension(datasets[i], algorithm="radial_svm")
         #Iterate over the epsilons and deltas
         for i in eachindex(epsilons)
             #-----------------------
@@ -164,12 +167,30 @@ function homework(datasets::Vector{Matrix{Float64}}; metric::Function=euclidean_
             push!(SCORE, score)
             polynomial_svm_results = [N, Y, SCORE]
             #-------------------------------------
+            # RADIAL BASIS FUNCTION SVM
+            #-------------------------------------
+            N = Vector()
+            Y = Vector()
+            SCORE = Vector()
+            @info "Computing radial basis SVM for dataset $(i)"
+            optimal_size = Int(optimal_training_set_size(ϵ, δ, vc_rsvm))
+            push!(N, optimal_size)
+            x_train, x_test, x_validation = split_train_test_validation(datasets[i], optimal_size)
+            y_train, y_test, y_validation = split_train_test_validation(labels, optimal_size)
+            radial_svm_model = SVC(kernel="rbf").fit(x_train, y_train)
+            y_pred = radial_svm_model.predict(x_test)
+            score = radial_svm_model.score(x_validation, y_validation)
+            push!(Y, y_pred)
+            push!(SCORE, score)
+            radial_svm_results = [N, Y, SCORE]
+            #-------------------------------------
             # DECISION TREE
             #-------------------------------------
             N = Vector()
             Y = Vector()
             SCORE = Vector()
             @info "Computing decision tree for dataset $(i)"
+            optimal_size = Int(optimal_training_set_size_tree(ϵ, δ, 3, m))
 
 
 
