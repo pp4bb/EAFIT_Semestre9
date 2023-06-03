@@ -31,7 +31,7 @@ function punto1a()
         (0, true)
     )
     #---- Exact Solution ----
-    Uex = x*(1-x)
+    Uex = sin(4π*x)*cos(4π*x)
     f(x) = diff(Uex(x),x,2)
     #---- Parameters ----
     #N = [5, 10, 50, 100]
@@ -270,7 +270,7 @@ function punto2()
         (0, true)
     )
     #---- Exact Solu0tion and its derivatives ----
-    Uex = sin(4π*x)
+    Uex = sin(4π*x)*(1-cos(4π*x))
     Uex1 = diff(Uex,x)
     Uex2 = diff(Uex,x,2)
     f(x) = diff(Uex,x,3)
@@ -374,7 +374,7 @@ function punto2()
     end
     plot!(N,e1,label="Error Linf")
     #plot!(N,e2,label="Error L2")
-    savefig(errors,"punto2Sym_errors.png")
+    savefig(errors,"punto2_errors.png")
     # Plot the results in 4 subplots
     @info "Plotting the results"
     plot_array = []
@@ -383,7 +383,7 @@ function punto2()
         plot!(Results[n][1],Results[n][3],label="Numerical Solution")
     end
     curves = plot(plot_array...,layout=(2,2),size=(800,800))
-    savefig(curves,"punto2Sym_curves.png")
+    savefig(curves,"punto2_curves.png")
 end
 
 ############################## PUNTO 2 ########################################
@@ -405,7 +405,7 @@ function punto3()
         (0, true)
     )
     #---- Exact Solu0tion and its derivatives ----
-    Uex = sin(4π*x)
+    Uex = sin(4π*x)*(1-cos(4π*x))
     Uex1 = diff(Uex,x)
     Uex2 = diff(Uex,x,2)
     Uex3 = diff(Uex,x,3)
@@ -518,7 +518,7 @@ function punto3()
     end
     plot!(N,e1,label="Error Linf")
     #plot!(N,e2,label="Error L2")
-    savefig(errors,"punto3Sym_errors.png")
+    savefig(errors,"punto3_errors.png")
     # Plot the results in 4 subplots
     @info "Plotting the results"
     plot_array = []
@@ -527,5 +527,5 @@ function punto3()
         plot!(Results[n][1],Results[n][3],label="Numerical Solution")
     end
     curves = plot(plot_array...,layout=(2,2),size=(800,800))
-    savefig(curves,"punto3Sym_curves.png")
+    savefig(curves,"punto3_curves.png")
 end
