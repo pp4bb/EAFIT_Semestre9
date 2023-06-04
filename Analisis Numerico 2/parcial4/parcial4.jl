@@ -34,8 +34,8 @@ function punto1a()
     Uex = sin(4π*x)*cos(4π*x)
     f(x) = diff(Uex(x),x,2)
     #---- Parameters ----
-    #N = [5, 10, 50, 100]
-    N = [5]
+    N = [5, 10, 50, 100]
+    #N = [5]
     domain = range(0,stop=1,length=1000)
     Results = Dict()
     for n in N
@@ -120,7 +120,7 @@ function punto1a()
     end
     plot!(N,e1,label="Error Linf")
     #plot!(N,e2,label="Error L2")
-    savefig(errors,"punto1aSym_errors.png")
+    savefig(errors,"punto1a_errors.png")
     # Plot the results in 4 subplots
     @info "Plotting the results"
     plot_array = []
@@ -198,6 +198,8 @@ function punto1b()
                 M[j,i] = M[i,j]
             end
         end
+        @info "K" display(K)
+        @info "M" display(M)
         #---- Calculate α(t)----
         U0 = Uex(0,x)
         @info "Calculating α(t)"
@@ -207,6 +209,7 @@ function punto1b()
         linsolve = init(problem)
         alpha[:,1] = solve(linsolve, SVDFactorization())
         b = [integrate(f*Vλ[i],(x,0,1)).evalf() for i in 1:xlen]
+        @info "b" display(b)
         B(t) = [b[i](t) for i in 1:xlen]
         aux_matrix = M + Δt*K + Δt*M
         for i in tqdm(1:tlen-1)
@@ -215,6 +218,8 @@ function punto1b()
             linsolve = init(problem)
             alpha[:,i+1] = solve(linsolve, SVDFactorization())
         end
+        @info "alpha"
+        display(alpha)
         #---- Calculate the numerical solution ----
         @info "Calculating the numerical solution"
         Uh = transpose(Vλ)*alpha
@@ -234,19 +239,41 @@ function punto1b()
     #---- Plot the results ----
     @info "Plotting the results"
     for n in N
-        idx = rand(1:length(Results[n][2]))
-        t = Results[n][2][idx]
-        Yex = Results[n][3].(t,Results[n][1])
-        Yh = Results[n][4][idx].(Results[n][1])
-        curves = plot(Results[n][1],Yex,label="Exact Solution", title="n = $n, t = $t")
-        plot!(curves,Results[n][1],Yh,label="Numerical Solution")
-        xlabel!("x")
-        ylabel!("u(x,t)")
+        #idx = rand(1:length(Results[n][2]))
+        t1 = Results[n][2][end-10]
+        t2 = Results[n][2][5]
+        t3 = Results[n][2][10]
+        t4 = Results[n][2][end]
+        T = [t1, t2, t3, t4]
+        Yex1 = Results[n][3].(t1,Results[n][1])
+        Yh1 = Results[n][4][end-10].(Results[n][1])
+        Yex2 = Results[n][3].(t2,Results[n][1])
+        Yh2 = Results[n][4][5].(Results[n][1])
+        Yex3 = Results[n][3].(t3,Results[n][1])
+        Yh3 = Results[n][4][10].(Results[n][1])
+        Yex4 = Results[n][3].(t4,Results[n][1])
+        Yh4 = Results[n][4][end].(Results[n][1])
+        Yex = [Yex1, Yex2, Yex3, Yex4]
+        Yh = [Yh1, Yh2, Yh3, Yh4]
+        plot_array = []
+        for i in 1:4
+            push!(plot_array,plot(Results[n][1],Yex[i],label="Exact Solution", title="n = $n, t = $(T[i])"))
+            plot!(plot_array[i],Results[n][1],Yh[i],label="Numerical Solution")
+            xlabel!("x")
+            ylabel!("u(x,t)")
+        end
+        curves = plot(plot_array..., layout=(2,2))
         savefig(curves, "Punto1b_curves_$n.png")
         curves = plot(Results[n][2],Results[n][5], title="Errors, n = $n")
         xlabel!("t")
         ylabel!("Error L∞")
         savefig(curves, "Punto1b_errors_$n.png")
+        # Make a table with the errors for each n
+        @info "Table with the errors Linf for each t"
+        table = zeros(length(Results[n][2]),2)
+        table[:,1] = Results[n][2]
+        table[:,2] = Results[n][5]
+        display(table)
     end
 end
 
@@ -272,19 +299,19 @@ function punto2()
     #---- Exact Solu0tion and its derivatives ----
     Uex = sin(4π*x)*(1-cos(4π*x))
     Uex1 = diff(Uex,x)
-    Uex2 = diff(Uex,x,2)
-    f(x) = diff(Uex,x,3)
+    Uex2 = diff(Uex1,x)
+    f(x) = diff(Uex2,x)
     #---- Parameters ----
     #N = [5, 10, 50, 100]
     N = [5]
     domain = range(0,stop=1,length=1000)
     Results = Dict()
     for n in N
-        h = 1/2n # Mesh size
-        xlen = 2n-1 # Number of nodes
-        mesh = 0+h:h:1-h # Mesh
+        h = 1/n # Mesh size
+        xlen = n-1 # Number of nodes
+        mesh = 0:h:1 # Mesh
         @info "length(mesh) = $(length(mesh))"
-        Δx = (x-y.*h)/(2*h) # Change of variable
+        Δx = (x-y.*h)/h # Change of variable
         #---- Base Functions ----
         ϕj(z) = ϕ(Δx.subs(y,z))
         ψj(z) = ψ(Δx.subs(y,z))
@@ -297,9 +324,9 @@ function punto2()
         Vψ1 = diff.(Vψ)
         Vψ2 = diff.(Vψ1)
         #= 
-        We have two matricial systems:
-        α1K1 + M1 = b1
-        α2K2 + M2 = b2
+        We have this matricial system:
+        -|K1 M1| |α1| = |b1|
+         |K2 M2| |α2|   |b2|
         =#
         #---- Assemble the matrices and the vectors----
         @info "Assembling the matrices and the vectors"
@@ -312,23 +339,39 @@ function punto2()
         for i in tqdm(1:xlen)
             for j in 1:xlen
                 K1[i,j] = integrate(Vϕ2[j]*Vϕ1[i],(x,0,1)).evalf()
-                M1[i,j] = integrate(Vψ2[j]*Vψ1[i],(x,0,1)).evalf()
+                M1[i,j] = integrate(Vψ2[j]*Vϕ1[i],(x,0,1)).evalf()
                 K2[i,j] = integrate(Vϕ2[j]*Vψ1[i],(x,0,1)).evalf()
-                M2[i,j] = integrate(Vψ2[j]*Vϕ1[i],(x,0,1)).evalf()
+                M2[i,j] = integrate(Vψ2[j]*Vψ1[i],(x,0,1)).evalf()
             end
             b1[i] = integrate(-f(x)*Vϕ[i],(x,0,1)).evalf()
             b2[i] = integrate(-f(x)*Vψ[i],(x,0,1)).evalf()
         end
+        @info "K1"
+        display(K1)
+        @info "M1"
+        display(M1)
+        @info "K2"
+        display(K2)
+        @info "M2"
+        display(M2)
+        @info "b1"
+        display(b1)
+        @info "b2"
+        display(b2)
         #---- Solve the systems ----
         @info "Solving the systems"
-        #alpha1
-        problem1 = LinearProblem([K1 M1],b1)
-        linsolve1 = init(problem1)
-        alpha1 = solve(linsolve1, SVDFactorization())
-        #alpha2
-        problem2 = LinearProblem([K2 M2],b2)
-        linsolve2 = init(problem2)
-        alpha2 = solve(linsolve2, SVDFactorization())
+        my_matrix = [K1 M1; K2 M2]
+        my_vector = [b1; b2]
+        problem = LinearProblem(my_matrix,my_vector)
+        linsolve = init(problem)
+        my_alpha = solve(linsolve, SVDFactorization())
+        m_a = length(my_alpha)
+        alpha1 = my_alpha[1:Int(m_a/2)]
+        alpha2 = my_alpha[Int(m_a/2)+1:end]
+        @info "alpha1"
+        display(alpha1)
+        @info "alpha2"
+        display(alpha2)
         #---- Calculate the numerical solution ----
         @info "Calculating the numerical solution"
         Uh = sum(alpha1[j]*Vϕ[j] + alpha2[j]*Vψ[j] for j in 1:xlen)
@@ -407,8 +450,8 @@ function punto3()
     #---- Exact Solu0tion and its derivatives ----
     Uex = sin(4π*x)*(1-cos(4π*x))
     Uex1 = diff(Uex,x)
-    Uex2 = diff(Uex,x,2)
-    Uex3 = diff(Uex,x,3)
+    Uex2 = diff(Uex1,x)
+    Uex3 = diff(Uex2,x)
     f(x) = Uex3 - Uex2
     #---- Parameters ----
     #N = [5, 10, 50, 100]
@@ -416,12 +459,12 @@ function punto3()
     domain = range(0,stop=1,length=1000)
     Results = Dict()
     for n in N
-        h = 1/2n # Mesh size
-        xlen = 2n-1 # Number of nodes
-        mesh = 0+h:h:1-h # Mesh
+        h = 1/n # Mesh size
+        xlen = n-1 # Number of nodes
+        mesh = 0:h:1 # Mesh
         @info "length(mesh) = $(length(mesh))"
-        Δx = (x-y.*h)/(2*h) # Change of variable
-        # Base Functions
+        Δx = (x-y.*h)/h # Change of variable
+        #---- Base Functions ----
         ϕj(z) = ϕ(Δx.subs(y,z))
         ψj(z) = ψ(Δx.subs(y,z))
         I = 1:xlen
@@ -433,9 +476,9 @@ function punto3()
         Vψ1 = diff.(Vψ)
         Vψ2 = diff.(Vψ1)
         #= 
-        We have two matricial systems:
-        α1K1 + M1 = b1
-        α2K2 + M2 = b2
+        We have this matricial system:
+        -|K1 M1| |α1| = |b1|
+         |K2 M2| |α2|   |b2|
         =#
         #---- Assemble the matrices and the vectors----
         @info "Assembling the matrices and the vectors"
@@ -447,32 +490,40 @@ function punto3()
         b2 = zeros(xlen)
         for i in tqdm(1:xlen)
             for j in 1:xlen
-                aux1 = Vϕ1[j]*Vϕ1[i]
-                aux2 = Vϕ2[j]*Vϕ1[i]
-                K1[i,j] = integrate(aux1-aux2,(x,0,1)).evalf()
-                aux1 = Vψ1[j]*Vϕ1[i]
-                aux2 = Vψ2[j]*Vϕ1[i]
-                M1[i,j] = integrate(aux1-aux2,(x,0,1)).evalf()
-                aux1 = Vϕ1[j]*Vψ1[i]
-                aux2 = Vϕ2[j]*Vψ1[i]
-                K2[i,j] = integrate(aux1-aux2,(x,0,1)).evalf()
-                aux1 = Vψ1[j]*Vψ1[i]
-                aux2 = Vψ2[j]*Vψ1[i]
-                M2[i,j] = integrate(Vψ2[j]*Vϕ1[i],(x,0,1)).evalf()
+                K1[i,j] = integrate(Vϕ1[j]*Vϕ1[i]-Vϕ2[j]*Vϕ1[i],(x,0,1)).evalf()
+                M1[i,j] = integrate(Vψ1[j]*Vϕ1[i]-Vψ2[j]*Vϕ1[i],(x,0,1)).evalf()
+                K2[i,j] = integrate(Vϕ1[j]*Vψ1[i]-Vϕ2[j]*Vψ1[i],(x,0,1)).evalf()
+                M2[i,j] = integrate(Vψ1[j]*Vψ1[i]-Vψ2[j]*Vψ1[i],(x,0,1)).evalf()
             end
             b1[i] = integrate(f(x)*Vϕ[i],(x,0,1)).evalf()
             b2[i] = integrate(f(x)*Vψ[i],(x,0,1)).evalf()
         end
+        @info "K1"
+        display(K1)
+        @info "K2"
+        display(K2)
+        @info "M1"
+        display(M1)
+        @info "M2"
+        display(M2)
+        @info "b1"
+        display(b1)
+        @info "b2"
+        display(b2)
         #---- Solve the systems ----
         @info "Solving the systems"
-        #alpha1
-        problem1 = LinearProblem([K1 M1],b1)
-        linsolve1 = init(problem1)
-        alpha1 = solve(linsolve1, SVDFactorization())
-        #alpha2
-        problem2 = LinearProblem([K2 M2],b2)
-        linsolve2 = init(problem2)
-        alpha2 = solve(linsolve2, SVDFactorization())
+        my_matrix = [K1 M1; K2 M2]
+        my_vector = [b1; b2]
+        problem = LinearProblem(my_matrix,my_vector)
+        linsolve = init(problem)
+        my_alpha = solve(linsolve, SVDFactorization())
+        m_a = length(my_alpha)
+        alpha1 = my_alpha[1:Int(m_a/2)]
+        alpha2 = my_alpha[Int(m_a/2)+1:end]
+        @info "alpha1"
+        display(alpha1)
+        @info "alpha2"
+        display(alpha2)
         #---- Calculate the numerical solution ----
         @info "Calculating the numerical solution"
         Uh = sum(alpha1[j]*Vϕ[j] + alpha2[j]*Vψ[j] for j in 1:xlen)
